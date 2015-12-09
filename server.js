@@ -10,9 +10,9 @@ function endSlash(s){
 
 function mime(s){
 	if(s.search(/\.html$/i) > -1){var t = 'text/html'; var b=false;}
+	else if(s.search(/\.json/i) > -1){var t = 'application/json'; var b=false;}
 	else if(s.search(/\.js/i) > -1){var t = 'application/javascript'; var b=false;}
 	else if(s.search(/\.css/i) > -1){var t = 'text/css'; var b=false;}
-	else if(s.search(/\.json/i) > -1){var t = 'application/json'; var b=false;}
 	else if(s.search(/\.png/i) > -1){var t = 'image/png'; var b=true;}
 	else if(s.search(/\.jpe?g/i) > -1){var t = 'image/jpeg'; var b=true;}
 	else{var t = null; var b = null}
