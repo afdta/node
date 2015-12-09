@@ -9,16 +9,19 @@ function endSlash(s){
 }
 
 function mime(s){
-	if(s.search(/\.html$/i) > -1){var t = 'text/html'}
-	else if(s.search(/\.js/i) > -1){var t = 'application/javascript'}
-	else if(s.search(/\.css/i) > -1){var t = 'text/css'}
-	else if(s.search(/\.json/i) > -1){var t = 'application/json'}
-	else{var t = 'text/html'}
-	return t;
+	if(s.search(/\.html$/i) > -1){var t = 'text/html'; var b=false;}
+	else if(s.search(/\.js/i) > -1){var t = 'application/javascript'; var b=false;}
+	else if(s.search(/\.css/i) > -1){var t = 'text/css'; var b=false;}
+	else if(s.search(/\.json/i) > -1){var t = 'application/json'; var b=false;}
+	else if(s.search(/\.png/i) > -1){var t = 'image/png'; var b=true;}
+	else if(s.search(/\.jpe?g/i) > -1){var t = 'image/jpeg'; var b=true;}
+	else{var t = null; var b = null}
+	return {t:t, b:b};
 }
 
 function requestHandler(request, response){
-	var url = ".." + request.url;
+	var url = request.url;
+	if(url == "/"){url = "/home/alec/Projects/"} //default directory is the projects folder. previously the url was set to the current directory, but this was causing problems in nested folders. now it's always relative to the root of the filesystem. probably not secure, but OK for local testing...
 
 	console.log("Requested url: "+url);
 
@@ -36,6 +39,7 @@ function requestHandler(request, response){
 		if(isdir && !endSlash(url)){url = url+"/"}
 	}
 	catch(e){
+		console.log(e);
 		response.write("<p>No valid content</p>");
 		response.end();
 		return null;
@@ -43,13 +47,30 @@ function requestHandler(request, response){
 
 	console.log("Resolved url: " + url);
 
-	if(isfile){
+	var MM = mime(url);
+	if(isfile && !MM.b){
 	    fs.readFile(url,'utf8',function (err, content){
-	        response.writeHead(200, {'Content-Type': mime(url)});
-	        var drawing = draw.divs([1,2,3,4,5,6,7,8,9,10,11,12,113]);
-	        drawing.then(function(v){return v}, function(v){return v});
-
+	    	
+	    	if(MM.t){
+	    		response.writeHead(200, {'Content-Type': MM.t});
+	    	}
+	    	else{
+	    		//mime only has cases for a small subset of types -- let browser figure it out rather than adding bad mime types that may cause items to render improperly
+	    		response.writeHead(200);
+	    	}
 	        
+	        
+	        if(MM.t==="text/html"){
+	        	var drawing = draw.divs([1,2,3,4,5,6,7,8,9,10,11,12,113]);
+	        	//drawing.then(function(v){return v}, function(v){return v});
+	        }
+	        else{
+		        //var drawing = new Promise(function(resolve, reject){
+		        //	resolve('');
+		        //});
+		        var drawing = Promise.resolve('');	        	
+	        }
+
 	        Promise.all([content, drawing])
 	        	.then(
 	        	function(c){
@@ -63,11 +84,18 @@ function requestHandler(request, response){
 	    	//response.end();
 
 	    });
-	    console.log("**********mime type: " + mime(url));
+	}
+	else if(isfile && MM.b){
+		fs.readFile(url,function (err, content){
+			response.writeHead(200, {'Content-Type': MM.t});
+			response.write(content);
+			response.end();
+		})
 	}
 	else if(isdir){
 		var dir = fs.readdir(url, function(err, files){
 			if(err){
+				console.log(err);
 				response.write("<p>No valid content</p>");
 				response.end();
 				return null;
